@@ -9,7 +9,7 @@ st.set_page_config(page_title="Личный кабинет автосалона"
 # Ключ твоей Google Таблицы
 SHARE_ID = "1On_134S1gG5Cduk3mGRNipffeNXED3CzDU3EJe-1Dfc" 
 
-@st.cache_data(ttl=5)  # Очень быстрое обновление
+@st.cache_data(ttl=5)  # Быстрое обновление данных
 def load_data(sheet_name):
     url = f"https://docs.google.com/spreadsheets/d/{SHARE_ID}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
     return pd.read_csv(url)
@@ -25,11 +25,6 @@ try:
     
     # Фильтруем активность по этой машине
     car_activity = df_activity[df_activity['ID_авто'] == car_id].copy()
-    
-    # Принудительно переименовываем столбцы активности по порядку, 
-    # чтобы код не зависел от букв и скобочек в таблице
-    col_names = ['Дата', 'ID_авто', 'Просмотры', 'Звонки', 'Визиты', 'Тест-драйвы']
-    car_activity.columns = col_names[:len(car_activity.columns)]
     car_activity['Дата'] = car_activity['Дата'].astype(str)
     
     # Считаем дни в продаже
