@@ -12,7 +12,6 @@ SHARE_ID = "1On_134S1gG5Cduk3mGRNipffeNXED3CzDU3EJe-1Dfc"
 def load_data(sheet_name):
     url = f"https://docs.google.com/spreadsheets/d/{SHARE_ID}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
     df = pd.read_csv(url)
-    # Просто убираем случайные пробелы по краям названий столбцов, если они есть
     df.columns = df.columns.str.strip()
     return df
 
@@ -101,7 +100,7 @@ try:
         
         st.markdown("---")
         st.metric(label="Конверсия: Звонки ➡️ Визиты", value=f"{conv_to_visit:.1f}%")
-        st.metric(label="Конверсия: Визиты ➡️ Тест-драйв", value=f"{conv_test:.1f}%")
+        st.metric(label="Конверсия: Визиты ➡️ Тест-драйв", value=f"{conv_to_test:.1f}%") # ТУТ ИСПРАВЛЕНО НА conv_to_test
 
     st.markdown("---")
     
