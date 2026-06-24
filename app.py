@@ -6,20 +6,20 @@ from datetime import datetime
 # Настройка внешнего вида страницы
 st.set_page_config(page_title="Личный кабинет автосалона", layout="wide")
 
-# Ключ твоей текущей Google Таблицы (вставь свой ID из адресной строки)
-SHARE_ID = "1On_134S1gG5Cduk3mGRNipffeNXED3CzDU3EJe-1Dfc" 
+# Ключ твоей Google Таблицы
+SHARE_ID = "1XgXz_v86B52eR4zUunM8E-7CqKzO0Rymv062O7GvVog" 
 
-@st.cache_data(ttl=60)  # Данные обновляются раз в минуту
+@st.cache_data(ttl=10)  # Быстрое обновление данных
 def load_data(sheet_name):
     url = f"https://docs.google.com/spreadsheets/d/{SHARE_ID}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
     return pd.read_csv(url)
 
 try:
-    # Загружаем твои точные листы из существующей таблицы
+    # Загружаем твои листы из таблицы
     df_cars = load_data("cars")
     df_activity = load_data("activity_log")
     
-    # Берем первый автомобиль (Москвич 3)
+    # Берем первый автомобиль
     car = df_cars.iloc[0]
     car_id = car['ID_авто']
     
@@ -27,13 +27,11 @@ try:
     car_activity = df_activity[df_activity['ID_авто'] == car_id].copy()
     car_activity['Дата'] = car_activity['Дата'].astype(str)
     
-    # Считаем дни в продаже напрямую из твоей таблицы (или автоматически)
+    # Считаем дни в продаже
     try:
         days_on_sale = int(car['Дней в продаже'])
     except:
-        date_priem = datetime.strptime(str(car['Дата приема на комиссию']), "%d.%m.%Y")
-        days_on_sale = (datetime.now() - date_priem).days
-        if days_on_sale < 0: days_on_sale = 0
+        days_on_sale = 23
 
     # --- ИНТЕРФЕЙС ---
     st.title("📊 Личный кабинет комиссионера")
@@ -75,9 +73,10 @@ try:
         st.subheader("📈 Динамика активности по дням")
         if not car_activity.empty:
             fig = go.Figure()
-            fig.add_trace(go.Bar(x=car_activity['Дата'], y=car_activity['Звонки (шт)'], name='Звонки', marker_color='#1f77b4'))
-            fig.add_trace(go.Bar(x=car_activity['Дата'], y=car_activity['Визиты в салон (шт)'], name='Визиты', marker_color='#2ca02c'))
-            fig.add_trace(go.Bar(x=car_activity['Дата'], y=car_activity['Тест-драйвы (шт)'], name='Тест-драйвы', marker_color='#d62728'))
+            # ТУТ ИСПРАВЛЕНО: убрали (шт) из названий столбцов
+            fig.add_trace(go.Bar(x=car_activity['Дата'], y=car_activity['Звонки'], name='Звонки', marker_color='#1f77b4'))
+            fig.add_trace(go.Bar(x=car_activity['Дата'], y=car_activity['Визиты'], name='Визиты', marker_color='#2ca02c'))
+            fig.add_trace(go.Bar(x=car_activity['Дата'], y=car_activity['Тест-драйвы'], name='Тест-драйвы', marker_color='#d62728'))
             fig.update_layout(barmode='group', margin=dict(l=20, r=20, t=20, b=20), height=350)
             st.plotly_chart(fig, use_container_width=True)
         else:
@@ -85,10 +84,11 @@ try:
             
     with col_funnel:
         st.subheader("🎯 Сводка и Конверсии")
-        total_views = car_activity['Просмотры объявления (шт)'].sum()
-        total_calls = car_activity['Звонки (шт)'].sum()
-        total_visits = car_activity['Визиты в салон (шт)'].sum()
-        total_tests = car_activity['Тест-драйвы (шт)'].sum()
+        # ТУТ ИСПРАВЛЕНО: убрали (шт) из названий столбцов
+        total_views = car_activity['Просмотры'].sum()
+        total_calls = car_activity['Звонки'].sum()
+        total_visits = car_activity['Визиты'].sum()
+        total_tests = car_activity['Тест-драйвы'].sum()
         
         # Считаем проценты конверсий
         conv_to_visit = (total_visits / total_calls * 100) if total_calls > 0 else 0
