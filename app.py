@@ -9,7 +9,7 @@ st.set_page_config(page_title="Личный кабинет автосалона"
 # Ключ твоей Google Таблицы
 SHARE_ID = "1On_134S1gG5Cduk3mGRNipffeNXED3CzDU3EJe-1Dfc" 
 
-@st.cache_data(ttl=10)  # Быстрое обновление данных
+@st.cache_data(ttl=5)  # Очень быстрое обновление
 def load_data(sheet_name):
     url = f"https://docs.google.com/spreadsheets/d/{SHARE_ID}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
     return pd.read_csv(url)
@@ -25,6 +25,11 @@ try:
     
     # Фильтруем активность по этой машине
     car_activity = df_activity[df_activity['ID_авто'] == car_id].copy()
+    
+    # Принудительно переименовываем столбцы активности по порядку, 
+    # чтобы код не зависел от букв и скобочек в таблице
+    col_names = ['Дата', 'ID_авто', 'Просмотры', 'Звонки', 'Визиты', 'Тест-драйвы']
+    car_activity.columns = col_names[:len(car_activity.columns)]
     car_activity['Дата'] = car_activity['Дата'].astype(str)
     
     # Считаем дни в продаже
@@ -73,7 +78,6 @@ try:
         st.subheader("📈 Динамика активности по дням")
         if not car_activity.empty:
             fig = go.Figure()
-            # ТУТ ИСПРАВЛЕНО: убрали (шт) из названий столбцов
             fig.add_trace(go.Bar(x=car_activity['Дата'], y=car_activity['Звонки'], name='Звонки', marker_color='#1f77b4'))
             fig.add_trace(go.Bar(x=car_activity['Дата'], y=car_activity['Визиты'], name='Визиты', marker_color='#2ca02c'))
             fig.add_trace(go.Bar(x=car_activity['Дата'], y=car_activity['Тест-драйвы'], name='Тест-драйвы', marker_color='#d62728'))
@@ -84,7 +88,6 @@ try:
             
     with col_funnel:
         st.subheader("🎯 Сводка и Конверсии")
-        # ТУТ ИСПРАВЛЕНО: убрали (шт) из названий столбцов
         total_views = car_activity['Просмотры'].sum()
         total_calls = car_activity['Звонки'].sum()
         total_visits = car_activity['Визиты'].sum()
@@ -105,7 +108,7 @@ try:
 
     st.markdown("---")
     
-    # БЛОК 4: Личный менеджер
+    # БЛОК 4: Ответственный менеджер
     st.subheader("👤 Ваш ответственный менеджер")
     st.markdown(f"По любым вопросам вы можете связаться напрямую: **{car['ФИО менеджера']}** ({car['Телефон менеджера']})")
 
