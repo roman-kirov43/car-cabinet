@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
-from datetime import datetime
 
 # Настройка внешнего вида страницы
 st.set_page_config(page_title="Личный кабинет автосалона", layout="wide")
@@ -9,58 +8,44 @@ st.set_page_config(page_title="Личный кабинет автосалона"
 # Ключ твоей Google Таблицы
 SHARE_ID = "1On_134S1gG5Cduk3mGRNipffeNXED3CzDU3EJe-1Dfc" 
 
-@st.cache_data(ttl=2)  # Мгновенное обновление данных
+@st.cache_data(ttl=5)  # Быстрое обновление данных
 def load_data(sheet_name):
     url = f"https://docs.google.com/spreadsheets/d/{SHARE_ID}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
     df = pd.read_csv(url)
-    # Умная очистка заголовков: убираем пробелы, подчеркивания и переводим в нижний регистр
-    df.columns = df.columns.str.strip().str.lower().str.replace('_', '').str.replace(' ', '')
+    # Просто убираем случайные пробелы по краям названий столбцов, если они есть
+    df.columns = df.columns.str.strip()
     return df
 
 try:
-    # Загружаем твои листы из таблицы
+    # Загружаем листы таблицы напрямую
     df_cars = load_data("cars")
     df_activity = load_data("activity_log")
     
-    # Берем первый автомобиль
+    # Работаем с первым автомобилем (Москвич 3)
     car = df_cars.iloc[0]
+    car_id = car['ID_авто']
     
-    # Ищем колонку с ID авто (теперь она называется строго 'idавто')
-    car_id = car['idавто']
+    # Фильтруем активность по ID этого автомобиля
+    car_activity = df_activity[df_activity['ID_авто'] == car_id].copy()
+    car_activity['Дата'] = car_activity['Дата'].astype(str)
     
-    # Фильтруем активность по этой машине
-    car_activity = df_activity[df_activity['idавто'] == car_id].copy()
-    
-    # Находим нужные столбцы по ключевым словам, чтобы не зависеть от точного названия
-    col_date = [c for c in car_activity.columns if 'дата' in c][0]
-    col_calls = [c for c in car_activity.columns if 'звонк' in c][0]
-    col_visits = [c for c in car_activity.columns if 'визит' in c][0]
-    col_tests = [c for c in car_activity.columns if 'тест' in c][0]
-    col_views = [c for c in car_activity.columns if 'просмотр' in c][0]
-
-    car_activity[col_date] = car_activity[col_date].astype(str)
-    
-    days_on_sale = 23
+    # Получаем дни в продаже напрямую из таблицы
+    try:
+        days_on_sale = int(car['Дней в продаже'])
+    except:
+        days_on_sale = 23
 
     # --- ИНТЕРФЕЙС ---
     st.title("📊 Личный кабинет комиссионера")
     
-    # Восстанавливаем оригинальные названия для вывода на экран
-    model_name = car[[c for c in df_cars.columns if 'марка' in c][0]]
-    vin_name = car[[c for c in df_cars.columns if 'vin' in c or 'госномер' in c][0]]
-    dogovor = car[[c for c in df_cars.columns if 'договор' in c][0]]
-    status = car[[c for c in df_cars.columns if 'статус' in c][0]]
-    
-    st.header(f"{model_name} (VIN/Госномер: {vin_name})")
-    st.markdown(f"**Договор комиссии:** {dogovor} | **Текущий статус:** `{status}`")
+    # Шапка автомобиля
+    st.header(f"{car['Марка и Модель']} (VIN/Госномер: {car['Госномер / VIN']})")
+    st.markdown(f"**Договор комиссии:** {car['Номер договора комиссии']} | **Текущий статус:** `{car['Текущий статус']}`")
     st.markdown("---")
     
     # БЛОК 1: Умная рекомендация по цене
-    col_p_salon = [c for c in df_cars.columns if 'текущаяцена' in c or 'ценасалона' in c][0]
-    col_p_market = [c for c in df_cars.columns if 'рыночнаяцена' in c][0]
-    
-    price_salon = int(car[col_p_salon])
-    price_market = int(car[col_p_market])
+    price_salon = int(car['Текущая цена салона (₽)'])
+    price_market = int(car['Рыночная цена (₽)'])
     
     if price_salon > price_market:
         diff = price_salon - price_market
@@ -90,9 +75,9 @@ try:
         st.subheader("📈 Динамика активности по дням")
         if not car_activity.empty:
             fig = go.Figure()
-            fig.add_trace(go.Bar(x=car_activity[col_date], y=car_activity[col_calls], name='Звонки', marker_color='#1f77b4'))
-            fig.add_trace(go.Bar(x=car_activity[col_date], y=car_activity[col_visits], name='Визиты', marker_color='#2ca02c'))
-            fig.add_trace(go.Bar(x=car_activity[col_date], y=car_activity[col_tests], name='Тест-драйвы', marker_color='#d62728'))
+            fig.add_trace(go.Bar(x=car_activity['Дата'], y=car_activity['Звонки'], name='Звонки', marker_color='#1f77b4'))
+            fig.add_trace(go.Bar(x=car_activity['Дата'], y=car_activity['Визиты'], name='Визиты', marker_color='#2ca02c'))
+            fig.add_trace(go.Bar(x=car_activity['Дата'], y=car_activity['Тест-драйвы'], name='Тест-драйвы', marker_color='#d62728'))
             fig.update_layout(barmode='group', margin=dict(l=20, r=20, t=20, b=20), height=350)
             st.plotly_chart(fig, use_container_width=True)
         else:
@@ -100,10 +85,10 @@ try:
             
     with col_funnel:
         st.subheader("🎯 Сводка и Конверсии")
-        total_views = car_activity[col_views].sum()
-        total_calls = car_activity[col_calls].sum()
-        total_visits = car_activity[col_visits].sum()
-        total_tests = car_activity[col_tests].sum()
+        total_views = car_activity['Просмотры'].sum()
+        total_calls = car_activity['Звонки'].sum()
+        total_visits = car_activity['Визиты'].sum()
+        total_tests = car_activity['Тест-драйвы'].sum()
         
         # Считаем проценты конверсий
         conv_to_visit = (total_visits / total_calls * 100) if total_calls > 0 else 0
@@ -121,10 +106,8 @@ try:
     st.markdown("---")
     
     # БЛОК 4: Ответственный менеджер
-    col_manager = [c for c in df_cars.columns if 'фиоменеджер' in c or 'менеджер' in c][0]
-    col_phone = [c for c in df_cars.columns if 'телефонменеджер' in c or 'телефон' in c][0]
     st.subheader("👤 Ваш ответственный менеджер")
-    st.markdown(f"По любым вопросам вы можете связаться напрямую: **{car[col_manager]}** ({car[col_phone]})")
+    st.markdown(f"По любым вопросам вы можете связаться напрямую: **{car['ФИО менеджера']}** ({car['Телефон менеджера']})")
 
 except Exception as e:
     st.error("Ошибка чтения данных. Пожалуйста, убедитесь, что в Google Таблице открыт доступ по ссылке, а в коде верно указан SHARE_ID.")
