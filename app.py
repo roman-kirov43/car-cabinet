@@ -7,7 +7,7 @@ from datetime import datetime
 st.set_page_config(page_title="Личный кабинет автосалона", layout="wide")
 
 # Ключ твоей Google Таблицы
-SHARE_ID = "1XgXz_v86B52eR4zUunM8E-7CqKzO0Rymv062O7GvVog" 
+SHARE_ID = "1On_134S1gG5Cduk3mGRNipffeNXED3CzDU3EJe-1Dfc" 
 
 @st.cache_data(ttl=10)  # Быстрое обновление данных
 def load_data(sheet_name):
