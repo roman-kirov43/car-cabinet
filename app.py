@@ -57,6 +57,9 @@ try:
             # Фильтруем аналоги с рынка по ID этого автомобиля
             car_analogs = df_analogs[df_analogs['ID_авто'] == car_id].copy()
             
+            # ЗАЩИТА: Убираем пустые строки, где нет ссылки или цены
+            car_analogs = car_analogs.dropna(subset=['Ссылка', 'Цена'])
+            
             try:
                 days_on_sale = int(car['Дней в продаже'])
             except:
@@ -133,18 +136,16 @@ try:
             st.markdown("Ниже представлены актуальные предложения конкурентов. Ссылки кликабельны:")
             
             if not car_analogs.empty:
-                # Оставляем только нужные столбцы для отображения
-                display_df = car_analogs[['Цена', 'Ссылка']].copy()
+                # Безопасно приводим к нужному типу данных
+                display_df = pd.DataFrame()
+                display_df['Цена аналога (₽)'] = car_analogs['Цена'].astype(int)
                 
-                # Переименовываем столбцы для красоты
-                display_df.columns = ['Цена аналога (₽)', 'Ссылка на объявление']
-                
-                # Убеждаемся, что ссылки имеют правильный формат для открытия
-                display_df['Ссылка на объявление'] = display_df['Ссылка на объявление'].apply(
-                    lambda x: x if str(x).startswith('http') else 'https://' + str(x)
+                # Форматируем ссылки
+                display_df['Ссылка на объявление'] = car_analogs['Ссылка'].apply(
+                    lambda x: str(x).strip() if str(x).startswith('http') else 'https://' + str(x).strip()
                 )
                 
-                # Используем мощный встроенный компонент таблицы с поддержкой ссылок
+                # Строим интерактивную таблицу
                 st.dataframe(
                     display_df,
                     column_config={
