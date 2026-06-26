@@ -12,7 +12,7 @@ st.set_page_config(
 # --- БЛОК УЛЬТРАСОВРЕМЕННЫХ СТИЛЕЙ (CSS) ---
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght=400;500;700&display=swap');
     
     html, body, [data-testid="stWidgetLabel"], p, div {
         font-family: 'Ubuntu', sans-serif !important;
@@ -90,7 +90,7 @@ try:
             clean_vin = str(vin_value).strip().lower()
             return clean_vin[-5:] if len(clean_vin) >= 5 else clean_vin
 
-        # Ищем машину, у которой последние 5 символов VIN совпадают с вводом пользователя
+        # Ищем машину, у которой последние 5 символов VIN совпали с вводом пользователя
         user_cars = df_cars[df_cars['Госномер / VIN'].apply(get_last_5) == user_vin_input.lower()]
         
         if not user_cars.empty:
@@ -114,11 +114,15 @@ try:
             car_analogs = df_analogs[df_analogs['ID_авто'] == car_id].copy()
             car_analogs = car_analogs.dropna(subset=['Ссылка', 'Цена'])
             
-            # Универсальная привязка истории цен по индексам колонок (защита от языка заголовков)
+            # Супер-надежная привязка истории цен: берем только первые 3 колонки, сколько бы их ни было
             car_price_history = pd.DataFrame()
             if not df_price_hist.empty and len(df_price_hist.columns) >= 3:
                 df_price_hist_clean = df_price_hist.copy()
-                df_price_hist_clean.columns = ['id_auto', 'date_val', 'price_val'] + list(df_price_hist_clean.columns[3:])
+                # Берем только первые 3 столбца и жестко даем им технические имена
+                df_price_hist_clean = df_price_hist_clean.iloc[:, :3]
+                df_price_hist_clean.columns = ['id_auto', 'date_val', 'price_val']
+                
+                # Фильтруем по ID авто
                 car_price_history = df_price_hist_clean[df_price_hist_clean['id_auto'].astype(str) == str(car_id)].copy()
                 car_price_history = car_price_history.dropna(subset=['date_val', 'price_val'])
             
