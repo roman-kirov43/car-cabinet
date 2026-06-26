@@ -2,26 +2,53 @@ import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
 
-# Настройка внешнего вида страницы
-st.set_page_config(page_title="Личный кабинет автосалона", layout="wide")
+# Настройка страницы
+st.set_page_config(
+    page_title="Личный кабинет автосалона", 
+    page_icon="🚗",
+    layout="wide"
+)
+
+# --- БЛОК КРАСИВЫХ СТИЛЕЙ (CSS) ---
+# Здесь мы делаем карточки метрик с эффектом объема и настраиваем шрифты
+st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+    
+    html, body, [data-testid="stWidgetLabel"] {
+        font-family: 'Inter', sans-serif !important;
+    }
+    
+    /* Стилизация карточек метрик */
+    div[data-testid="stMetricValue"] {
+        font-size: 28px !important;
+        font-weight: 700 !important;
+    }
+    div[data-testid="metric-container"] {
+        background-color: rgba(120, 120, 120, 0.05);
+        border: 1px solid rgba(120, 120, 120, 0.15);
+        padding: 15px 20px;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 # Ключ твоей Google Таблицы
 SHARE_ID = "1On_134S1gG5Cduk3mGRNipffeNXED3CzDU3EJe-1Dfc" 
 
-@st.cache_data(ttl=5)  # Быстрое обновление данных
+@st.cache_data(ttl=5)
 def load_data(sheet_name):
     url = f"https://docs.google.com/spreadsheets/d/{SHARE_ID}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
     df = pd.read_csv(url)
-    df.columns = df.columns.str.strip() # Убираем пробелы по краям заголовков
+    df.columns = df.columns.str.strip()
     return df
 
 try:
-    # Загружаем листы таблицы напрямую
     df_cars = load_data("cars")
     df_activity = load_data("activity_log")
     df_analogs = load_data("market_analogs")
     
-    # Пытаемся загрузить историю цен безопасно
     try:
         df_price_hist = load_data("price_history")
     except:
@@ -30,23 +57,19 @@ try:
     # --- ЭКРАН АВТОРИЗАЦИИ ---
     st.title("🔐 Вход в личный кабинет комиссионера")
     
-    # Поле для ввода последних 5 символов VIN
     user_vin_input = st.text_input("Введите последние 5 символов VIN-кода вашего автомобиля:", "", max_chars=5).strip()
     
     if user_vin_input:
-        # Функция для обрезки VIN до последних 5 символов и приведения к нижнему регистру
         def get_last_5(vin_value):
             clean_vin = str(vin_value).strip().lower()
             return clean_vin[-5:] if len(clean_vin) >= 5 else clean_vin
 
-        # Ищем машину, у которой последние 5 символов VIN совпадают с вводом пользователя
         user_cars = df_cars[df_cars['Госномер / VIN'].apply(get_last_5) == user_vin_input.lower()]
         
         if not user_cars.empty:
             st.success("Авторизация успешна!")
             st.markdown("---")
             
-            # Если у одного владельца нашлось несколько машин
             if len(user_cars) > 1:
                 car_options = user_cars['Марка и Модель'].tolist()
                 selected_car_name = st.selectbox("Выберите нужный автомобиль для просмотра:", car_options)
@@ -56,21 +79,16 @@ try:
                 
             car_id = car['ID_авто']
             
-            # Фильтруем данные по ID этого автомобиля
             car_activity = df_activity[df_activity['ID_авто'] == car_id].copy()
             car_activity['Дата'] = car_activity['Дата'].astype(str)
             
             car_analogs = df_analogs[df_analogs['ID_авто'] == car_id].copy()
             car_analogs = car_analogs.dropna(subset=['Ссылка', 'Цена'])
             
-            # УНИВЕРСАЛЬНАЯ ПРИВЯЗКА ИСТОРИИ ЦЕН ПО ИНДЕКСАМ КОЛОНОК
             car_price_history = pd.DataFrame()
             if not df_price_hist.empty and len(df_price_hist.columns) >= 3:
-                # Переименовываем колонки по их порядковому номеру для надежности
                 df_price_hist_clean = df_price_hist.copy()
                 df_price_hist_clean.columns = ['id_auto', 'date_val', 'price_val'] + list(df_price_hist_clean.columns[3:])
-                
-                # Фильтруем по ID авто
                 car_price_history = df_price_hist_clean[df_price_hist_clean['id_auto'].astype(str) == str(car_id)].copy()
                 car_price_history = car_price_history.dropna(subset=['date_val', 'price_val'])
             
@@ -80,8 +98,8 @@ try:
                 days_on_sale = 23
 
             # --- ИНТЕРФЕЙС КАБИНЕТА ---
-            st.header(f"🚗 {car['Марка и Модель']} (VIN/Госномер: {car['Госномер / VIN']})")
-            st.markdown(f"**Договор комиссии:** {car['Номер договора комиссии']} | **Текущий статус:** `{car['Текущий статус']}`")
+            st.header(f"🚗 {car['Марка и Модель']}")
+            st.caption(f"📍 **VIN/Госномер:** {car['Госномер / VIN']} | **Договор комиссии:** {car['Номер договора комиссии']} | **Статус:** `{car['Текущий статус']}`")
             st.markdown("---")
             
             # БЛОК 1: Умная рекомендация по цене
@@ -98,14 +116,14 @@ try:
                 
             st.markdown("---")
             
-            # БЛОК 2: Крупные цифры-метрики
+            # БЛОК 2: Крупные цифры-метрики (Красивые карточки)
             col1, col2, col3 = st.columns(3)
             with col1:
-                st.metric(label="Текущая цена в салоне", value=f"{price_salon:,.0f} ₽")
+                st.metric(label="💰 Текущая цена в салоне", value=f"{price_salon:,.0f} ₽")
             with col2:
-                st.metric(label="Средняя цена на рынке", value=f"{price_market:,.0f} ₽")
+                st.metric(label="📊 Средняя цена на рынке", value=f"{price_market:,.0f} ₽")
             with col3:
-                st.metric(label="Дней на комиссии", value=f"{days_on_sale} дней")
+                st.metric(label="📅 Дней на комиссии", value=f"{days_on_sale} дней")
                 
             st.markdown("---")
             
@@ -116,10 +134,16 @@ try:
                 st.subheader("📈 Динамика активности по дням")
                 if not car_activity.empty:
                     fig = go.Figure()
-                    fig.add_trace(go.Bar(x=car_activity['Дата'], y=car_activity['Звонки'], name='Звонки', marker_color='#1f77b4'))
-                    fig.add_trace(go.Bar(x=car_activity['Дата'], y=car_activity['Визиты'], name='Визиты', marker_color='#2ca02c'))
-                    fig.add_trace(go.Bar(x=car_activity['Дата'], y=car_activity['Тест-драйвы'], name='Тест-драйвы', marker_color='#d62728'))
-                    fig.update_layout(barmode='group', margin=dict(l=20, r=20, t=20, b=20), height=350)
+                    fig.add_trace(go.Bar(x=car_activity['Дата'], y=car_activity['Звонки'], name='📞 Звонки', marker_color='#2ca02c'))
+                    fig.add_trace(go.Bar(x=car_activity['Дата'], y=car_activity['Визиты'], name='🚶 Визиты', marker_color='#1f77b4'))
+                    fig.add_trace(go.Bar(x=car_activity['Дата'], y=car_activity['Тест-драйвы'], name='🏎️ Тест-драйвы', marker_color='#ff7f0e'))
+                    fig.update_layout(
+                        barmode='group', 
+                        margin=dict(l=10, r=10, t=10, b=10), 
+                        height=350,
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        plot_bgcolor='rgba(0,0,0,0)'
+                    )
                     st.plotly_chart(fig, use_container_width=True)
                 else:
                     st.info("Данные об активности по автомобилю пока не поступали.")
@@ -134,10 +158,10 @@ try:
                 conv_to_visit = (total_visits / total_calls * 100) if total_calls > 0 else 0
                 conv_to_test = (total_tests / total_visits * 100) if total_visits > 0 else 0
                 
-                st.write(f"👀 Просмотров объявлений: **{total_views}**")
-                st.write(f"📞 Всего звонков: **{total_calls}**")
-                st.write(f"🚶 Всего визитов в салон: **{total_visits}**")
-                st.write(f"🏎️ Проведено тест-драйвов: **{total_tests}**")
+                st.markdown(f"👀 Просмотров объявлений: **{total_views}**")
+                st.markdown(f"📞 Всего звонков: **{total_calls}**")
+                st.markdown(f"🚶 Всего визитов в салон: **{total_visits}**")
+                st.markdown(f"🏎️ Проведено тест-драйвов: **{total_tests}**")
                 
                 st.markdown("---")
                 st.metric(label="Конверсия: Звонки ➡️ Визиты", value=f"{conv_to_visit:.1f}%")
@@ -151,7 +175,6 @@ try:
             with col_hist_graph:
                 st.subheader("📉 История изменения цены")
                 if not car_price_history.empty:
-                    # Преобразуем даты и сортируем хронологически
                     car_price_history['date_dt'] = pd.to_datetime(car_price_history['date_val'], dayfirst=True, errors='coerce')
                     car_price_history = car_price_history.sort_values('date_dt')
                     
@@ -165,15 +188,16 @@ try:
                         name='Цена автомобиля'
                     ))
                     fig_price.update_layout(
-                        margin=dict(l=20, r=20, t=20, b=20), 
+                        margin=dict(l=10, r=10, t=10, b=10), 
                         height=300,
+                        paper_bgcolor='rgba(0,0,0,0)',
+                        plot_bgcolor='rgba(0,0,0,0)',
                         yaxis=dict(tickformat=",.0f")
                     )
                     st.plotly_chart(fig_price, use_container_width=True)
                 else:
                     st.info("Цена на автомобиль не корректировалась с момента постановки на комиссию.")
             
-            # БЛОК 5: Аналоги с рынка
             with col_market_table:
                 st.subheader("📊 Текущие аналоги на рынке")
                 if not car_analogs.empty:
@@ -198,12 +222,15 @@ try:
                 
             st.markdown("---")
             
-            # БЛОК 6: Ответственный менеджер
+            # БЛОК 5: Ответственный менеджер
             st.subheader("👤 Ваш ответственный менеджер")
             st.markdown(f"По любым вопросам вы можете связаться напрямую: **{car['ФИО менеджера']}** ({car['Телефон менеджера']})")
         else:
             st.error("Автомобиль с такими цифрами VIN не найден. Пожалуйста, проверьте правильность ввода или обратитесь к вашему менеджеру.")
     else:
+        # КРАСИВЫЙ БАННЕР НА ГЛАВНОМ ЭКРАНЕ ПРИ ВХОДЕ
+        # Сюда можно подставить любую прямую ссылку на фото красивого авто
+        st.image("https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=1200&q=80", use_container_width=True)
         st.info("💡 Пожалуйста, введите последние 5 символов VIN-кода вашего автомобиля выше, чтобы войти в личный кабинет.")
 
 except Exception as e:
