@@ -9,27 +9,49 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- БЛОК КРАСИВЫХ СТИЛЕЙ (CSS) ---
-# Здесь мы делаем карточки метрик с эффектом объема и настраиваем шрифты
+# --- БЛОК УЛЬТРАСОВРЕМЕННЫХ СТИЛЕЙ (CSS) ---
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&display=swap');
     
-    html, body, [data-testid="stWidgetLabel"] {
-        font-family: 'Inter', sans-serif !important;
+    html, body, [data-testid="stWidgetLabel"], p, div {
+        font-family: 'Ubuntu', sans-serif !important;
     }
     
-    /* Стилизация карточек метрик */
-    div[data-testid="stMetricValue"] {
-        font-size: 28px !important;
-        font-weight: 700 !important;
-    }
+    /* Делаем карточки метрик премиальными и футуристичными */
     div[data-testid="metric-container"] {
-        background-color: rgba(120, 120, 120, 0.05);
-        border: 1px solid rgba(120, 120, 120, 0.15);
-        padding: 15px 20px;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.03), rgba(120, 120, 120, 0.01));
+        border: 1px solid rgba(255, 127, 14, 0.25); /* Тонкая неоновая оранжевая рамка */
+        padding: 22px;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+    }
+    
+    /* Эффект легкого парения при наведении на карточку цены или дней */
+    div[data-testid="metric-container"]:hover {
+        transform: translateY(-4px);
+        border-color: rgba(255, 127, 14, 0.6);
+        box-shadow: 0 15px 35px rgba(255, 127, 14, 0.1);
+    }
+    
+    /* Яркое выделение цифровых значений */
+    div[data-testid="stMetricValue"] {
+        font-size: 32px !important;
+        font-weight: 700 !important;
+        color: #ff7f0e !important; /* Насыщенный оранжевый акцент */
+    }
+    
+    /* Современные скругления для блоков предупреждений и рекомендаций */
+    .stAlert {
+        border-radius: 16px !important;
+        border: none !important;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.04);
+    }
+    
+    /* Красивые отступы для заголовков */
+    h1, h2, h3 {
+        font-weight: 700 !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -37,18 +59,20 @@ st.markdown("""
 # Ключ твоей Google Таблицы
 SHARE_ID = "1On_134S1gG5Cduk3mGRNipffeNXED3CzDU3EJe-1Dfc" 
 
-@st.cache_data(ttl=5)
+@st.cache_data(ttl=5)  # Быстрое обновление данных
 def load_data(sheet_name):
     url = f"https://docs.google.com/spreadsheets/d/{SHARE_ID}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
     df = pd.read_csv(url)
-    df.columns = df.columns.str.strip()
+    df.columns = df.columns.str.strip() # Убираем пробелы по краям заголовков
     return df
 
 try:
+    # Загружаем листы таблицы напрямую
     df_cars = load_data("cars")
     df_activity = load_data("activity_log")
     df_analogs = load_data("market_analogs")
     
+    # Пытаемся загрузить историю цен безопасно
     try:
         df_price_hist = load_data("price_history")
     except:
@@ -57,19 +81,23 @@ try:
     # --- ЭКРАН АВТОРИЗАЦИИ ---
     st.title("🔐 Вход в личный кабинет комиссионера")
     
+    # Поле для ввода последних 5 символов VIN
     user_vin_input = st.text_input("Введите последние 5 символов VIN-кода вашего автомобиля:", "", max_chars=5).strip()
     
     if user_vin_input:
+        # Функция для обрезки VIN до последних 5 символов и приведения к нижнему регистру
         def get_last_5(vin_value):
             clean_vin = str(vin_value).strip().lower()
             return clean_vin[-5:] if len(clean_vin) >= 5 else clean_vin
 
+        # Ищем машину, у которой последние 5 символов VIN совпадают с вводом пользователя
         user_cars = df_cars[df_cars['Госномер / VIN'].apply(get_last_5) == user_vin_input.lower()]
         
         if not user_cars.empty:
             st.success("Авторизация успешна!")
             st.markdown("---")
             
+            # Если у одного владельца нашлось несколько машин
             if len(user_cars) > 1:
                 car_options = user_cars['Марка и Модель'].tolist()
                 selected_car_name = st.selectbox("Выберите нужный автомобиль для просмотра:", car_options)
@@ -79,12 +107,14 @@ try:
                 
             car_id = car['ID_авто']
             
+            # Фильтруем данные по ID этого автомобиля
             car_activity = df_activity[df_activity['ID_авто'] == car_id].copy()
             car_activity['Дата'] = car_activity['Дата'].astype(str)
             
             car_analogs = df_analogs[df_analogs['ID_авто'] == car_id].copy()
             car_analogs = car_analogs.dropna(subset=['Ссылка', 'Цена'])
             
+            # Универсальная привязка истории цен по индексам колонок (защита от языка заголовков)
             car_price_history = pd.DataFrame()
             if not df_price_hist.empty and len(df_price_hist.columns) >= 3:
                 df_price_hist_clean = df_price_hist.copy()
@@ -99,7 +129,7 @@ try:
 
             # --- ИНТЕРФЕЙС КАБИНЕТА ---
             st.header(f"🚗 {car['Марка и Модель']}")
-            st.caption(f"📍 **VIN/Госномер:** {car['Госномер / VIN']} | **Договор комиссии:** {car['Номер договора комиссии']} | **Статус:** `{car['Текущий статус']}`")
+            st.caption(f"📍 **VIN/Госномер:** {car['Госномер / VIN']} | **Договор комиссии:** {car['Номер договора комиссии']} | **Текущий статус:** `{car['Текущий статус']}`")
             st.markdown("---")
             
             # БЛОК 1: Умная рекомендация по цене
@@ -116,7 +146,7 @@ try:
                 
             st.markdown("---")
             
-            # БЛОК 2: Крупные цифры-метрики (Красивые карточки)
+            # БЛОК 2: Крупные цифры-метрики (Новые интерактивные карточки)
             col1, col2, col3 = st.columns(3)
             with col1:
                 st.metric(label="💰 Текущая цена в салоне", value=f"{price_salon:,.0f} ₽")
@@ -228,8 +258,7 @@ try:
         else:
             st.error("Автомобиль с такими цифрами VIN не найден. Пожалуйста, проверьте правильность ввода или обратитесь к вашему менеджеру.")
     else:
-        # КРАСИВЫЙ БАННЕР НА ГЛАВНОМ ЭКРАНЕ ПРИ ВХОДЕ
-        # Сюда можно подставить любую прямую ссылку на фото красивого авто
+        # Стильный широкоформатный приветственный баннер на экране входа
         st.image("https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=1200&q=80", use_container_width=True)
         st.info("💡 Пожалуйста, введите последние 5 символов VIN-кода вашего автомобиля выше, чтобы войти в личный кабинет.")
 
