@@ -19,6 +19,7 @@ try:
     # Загружаем листы таблицы напрямую
     df_cars = load_data("cars")
     df_activity = load_data("activity_log")
+    df_analogs = load_data("market_analogs") # Загружаем лист аналогов
     
     # --- ЭКРАН АВТОРИЗАЦИИ ---
     st.title("🔐 Вход в личный кабинет комиссионера")
@@ -39,7 +40,7 @@ try:
             st.success("Авторизация успешна!")
             st.markdown("---")
             
-            # Если у одного владельца нашлось несколько машин с одинаковым финалом VIN (редко, но возможно)
+            # Если у одного владельца нашлось несколько машин
             if len(user_cars) > 1:
                 car_options = user_cars['Марка и Модель'].tolist()
                 selected_car_name = st.selectbox("Выберите нужный автомобиль для просмотра:", car_options)
@@ -49,9 +50,12 @@ try:
                 
             car_id = car['ID_авто']
             
-            # Фильтруем активность по ID выбранного автомобиля
+            # Фильтруем активность по ID этого автомобиля
             car_activity = df_activity[df_activity['ID_авто'] == car_id].copy()
             car_activity['Дата'] = car_activity['Дата'].astype(str)
+            
+            # Фильтруем аналоги с рынка по ID этого автомобиля
+            car_analogs = df_analogs[df_analogs['ID_авто'] == car_id].copy()
             
             try:
                 days_on_sale = int(car['Дней в продаже'])
@@ -63,7 +67,7 @@ try:
             st.markdown(f"**Договор комиссии:** {car['Номер договора комиссии']} | **Текущий статус:** `{car['Текущий статус']}`")
             st.markdown("---")
             
-            # БЛОК 1: Умная рекомендация по цене
+            # БЛОК 1: Умнаяcmd рекомендация по цене
             price_salon = int(car['Текущая цена салона (₽)'])
             price_market = int(car['Рыночная цена (₽)'])
             
@@ -124,7 +128,28 @@ try:
 
             st.markdown("---")
             
-            # БЛОК 4: Ответственный менеджер
+            # БЛОК 4: Аналоги с рынка (НОВЫЙ РАЗДЕЛ)
+            st.subheader("📊 Текущие аналоги на рынке")
+            st.markdown("Ниже представлены актуальные объявления конкурентов с аналогичными параметрами. Вы можете самостоятельно проверить информацию, кликнув по ссылке:")
+            
+            if not car_analogs.empty:
+                # Оформляем ссылки и цены красиво перед выводом
+                display_df = pd.DataFrame()
+                
+                # Добавляем красивую цену с форматированием рублей
+                display_df['Цена аналога'] = car_analogs['Цена'].apply(lambda x: f"{int(x):,.0f} ₽".replace(',', ' '))
+                
+                # Создаем кликабельную ссылку в формате HTML / Markdown
+                display_df['Ссылка на объявление'] = car_analogs['Ссылка'].apply(lambda x: f"[Открыть объявление]({x if str(x).startswith('http') else 'https://' + str(x)})")
+                
+                # Выводим красивую интерактивную таблицу в Streamlit
+                st.markdown(display_df.to_markdown(index=False), unsafe_gradient=True)
+            else:
+                st.info("Данные по актуальным аналогам на рынке сейчас обновляются вашим менеджером.")
+                
+            st.markdown("---")
+            
+            # БЛОК 5: Ответственный менеджер
             st.subheader("👤 Ваш ответственный менеджер")
             st.markdown(f"По любым вопросам вы можете связаться напрямую: **{car['ФИО менеджера']}** ({car['Телефон менеджера']})")
         else:
