@@ -19,7 +19,8 @@ try:
     # Загружаем листы таблицы напрямую
     df_cars = load_data("cars")
     df_activity = load_data("activity_log")
-    df_analogs = load_data("market_analogs") # Загружаем лист аналогов
+    df_analogs = load_data("market_analogs")
+    df_price_hist = load_data("price_history") # Загружаем историю цен
     
     # --- ЭКРАН АВТОРИЗАЦИИ ---
     st.title("🔐 Вход в личный кабинет комиссионера")
@@ -50,15 +51,15 @@ try:
                 
             car_id = car['ID_авто']
             
-            # Фильтруем активность по ID этого автомобиля
+            # Фильтруем данные по ID этого автомобиля
             car_activity = df_activity[df_activity['ID_авто'] == car_id].copy()
             car_activity['Дата'] = car_activity['Дата'].astype(str)
             
-            # Фильтруем аналоги с рынка по ID этого автомобиля
             car_analogs = df_analogs[df_analogs['ID_авто'] == car_id].copy()
-            
-            # ЗАЩИТА: Убираем пустые строки, где нет ссылки или цены
             car_analogs = car_analogs.dropna(subset=['Ссылка', 'Цена'])
+            
+            car_price_history = df_price_hist[df_price_hist['ID_авто'] == car_id].copy()
+            car_price_history = car_price_history.dropna(subset=['Дата', 'Цена'])
             
             try:
                 days_on_sale = int(car['Дней в продаже'])
@@ -131,36 +132,60 @@ try:
 
             st.markdown("---")
             
-            # БЛОК 4: Аналоги с рынка
-            st.subheader("📊 Текущие аналоги на рынке")
-            st.markdown("Ниже представлены актуальные предложения конкурентов. Ссылки кликабельны:")
+            # БЛОК 4: Новое — История изменения цены
+            col_hist_graph, col_market_table = st.columns([1, 1])
             
-            if not car_analogs.empty:
-                # Безопасно приводим к нужному типу данных
-                display_df = pd.DataFrame()
-                display_df['Цена аналога (₽)'] = car_analogs['Цена'].astype(int)
-                
-                # Форматируем ссылки
-                display_df['Ссылка на объявление'] = car_analogs['Ссылка'].apply(
-                    lambda x: str(x).strip() if str(x).startswith('http') else 'https://' + str(x).strip()
-                )
-                
-                # Строим интерактивную таблицу
-                st.dataframe(
-                    display_df,
-                    column_config={
-                        "Цена аналога (₽)": st.column_config.NumberColumn(format="%d ₽"),
-                        "Ссылка на объявление": st.column_config.LinkColumn("Открыть объявление")
-                    },
-                    hide_index=True,
-                    use_container_width=True
-                )
-            else:
-                st.info("Данные по актуальным аналогам на рынке сейчас обновляются вашим менеджером.")
+            with col_hist_graph:
+                st.subheader("📉 История изменения цены")
+                if not car_price_history.empty:
+                    # Преобразуем даты и сортируем их для красивой линии
+                    car_price_history['Дата_dt'] = pd.to_datetime(car_price_history['Дата'], dayfirst=True, errors='coerce')
+                    car_price_history = car_price_history.sort_values('Дата_dt')
+                    
+                    fig_price = go.Figure()
+                    fig_price.add_trace(go.Scatter(
+                        x=car_price_history['Дата'], 
+                        y=car_price_history['Цена'], 
+                        mode='lines+markers',
+                        line=dict(shape='spline', color='#ff7f0e', width=3),
+                        marker=dict(size=8),
+                        name='Цена автомобиля'
+                    ))
+                    fig_price.update_layout(
+                        margin=dict(l=20, r=20, t=20, b=20), 
+                        height=300,
+                        yaxis=dict(tickformat=",.0f")
+                    )
+                    st.plotly_chart(fig_price, use_container_width=True)
+                else:
+                    st.info("Цена на автомобиль не корректировалась с момента постановки на комиссию.")
+            
+            # БЛОК 5: Аналоги с рынка (теперь рядом с историей цены)
+            with col_market_table:
+                st.subheader("📊 Текущие аналоги на рынке")
+                if not car_analogs.empty:
+                    display_df = pd.DataFrame()
+                    display_df['Цена аналога (₽)'] = car_analogs['Цена'].astype(int)
+                    display_df['Ссылка на объявление'] = car_analogs['Ссылка'].apply(
+                        lambda x: str(x).strip() if str(x).startswith('http') else 'https://' + str(x).strip()
+                    )
+                    
+                    st.dataframe(
+                        display_df,
+                        column_config={
+                            "Цена аналога (₽)": st.column_config.NumberColumn(format="%d ₽"),
+                            "Ссылка на объявление": st.column_config.LinkColumn("Открыть объявление")
+                        },
+                        hide_index=True,
+                        use_container_width=True,
+                        height=300
+                    )
+                else:
+                    st.info("Данные по актуальным аналогам на рынке обновляются.")
                 
             st.markdown("---")
             
-            # БЛОК 5: Ответственный менеджер
+            # БЛОК 6: Ответственный менеджер
             st.subheader("👤 Ваш ответственный менеджер")
             st.markdown(f"По любым вопросам вы можете связаться напрямую: **{car['ФИО менеджера']}** ({car['Телефон менеджера']})")
         else:
