@@ -67,7 +67,7 @@ try:
             st.markdown(f"**Договор комиссии:** {car['Номер договора комиссии']} | **Текущий статус:** `{car['Текущий статус']}`")
             st.markdown("---")
             
-            # БЛОК 1: Умнаяcmd рекомендация по цене
+            # БЛОК 1: Умная рекомендация по цене
             price_salon = int(car['Текущая цена салона (₽)'])
             price_market = int(car['Рыночная цена (₽)'])
             
@@ -109,7 +109,7 @@ try:
                     
             with col_funnel:
                 st.subheader("🎯 Сводка и Конверсии")
-                total_views = car_activity['Просмотры'].sum()
+                total_views = car_activity['Просмотны' if 'Просмотны' in car_activity.columns else 'Просмотры'].sum()
                 total_calls = car_activity['Звонки'].sum()
                 total_visits = car_activity['Визиты'].sum()
                 total_tests = car_activity['Тест-драйвы'].sum()
@@ -128,22 +128,21 @@ try:
 
             st.markdown("---")
             
-            # БЛОК 4: Аналоги с рынка (НОВЫЙ РАЗДЕЛ)
+            # БЛОК 4: Аналоги с рынка
             st.subheader("📊 Текущие аналоги на рынке")
-            st.markdown("Ниже представлены актуальные объявления конкурентов с аналогичными параметрами. Вы можете самостоятельно проверить информацию, кликнув по ссылке:")
+            st.markdown("Ниже представлены актуальные объявления конкурентов. Вы можете кликнуть по ссылке, чтобы открыть объявление:")
             
             if not car_analogs.empty:
-                # Оформляем ссылки и цены красиво перед выводом
                 display_df = pd.DataFrame()
                 
-                # Добавляем красивую цену с форматированием рублей
+                # Форматируем цену
                 display_df['Цена аналога'] = car_analogs['Цена'].apply(lambda x: f"{int(x):,.0f} ₽".replace(',', ' '))
                 
-                # Создаем кликабельную ссылку в формате HTML / Markdown
-                display_df['Ссылка на объявление'] = car_analogs['Ссылка'].apply(lambda x: f"[Открыть объявление]({x if str(x).startswith('http') else 'https://' + str(x)})")
+                # Форматируем ссылку в Markdown
+                display_df['Ссылка на объявление'] = car_analogs['Ссылка'].apply(lambda x: f"[Открыть объявление на Avito]({x if str(x).startswith('http') else 'https://' + str(x)})")
                 
-                # Выводим красивую интерактивную таблицу в Streamlit
-                st.markdown(display_df.to_markdown(index=False), unsafe_gradient=True)
+                # ИСПРАВЛЕНО ТУТ: Просто выводим markdown-таблицу без ошибочных аргументов
+                st.markdown(display_df.to_markdown(index=False))
             else:
                 st.info("Данные по актуальным аналогам на рынке сейчас обновляются вашим менеджером.")
                 
