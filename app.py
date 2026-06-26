@@ -130,19 +130,30 @@ try:
             
             # БЛОК 4: Аналоги с рынка
             st.subheader("📊 Текущие аналоги на рынке")
-            st.markdown("Ниже представлены актуальные объявления конкурентов. Вы можете кликнуть по ссылке, чтобы открыть объявление:")
+            st.markdown("Ниже представлены актуальные предложения конкурентов. Ссылки кликабельны:")
             
             if not car_analogs.empty:
-                display_df = pd.DataFrame()
+                # Оставляем только нужные столбцы для отображения
+                display_df = car_analogs[['Цена', 'Ссылка']].copy()
                 
-                # Форматируем цену
-                display_df['Цена аналога'] = car_analogs['Цена'].apply(lambda x: f"{int(x):,.0f} ₽".replace(',', ' '))
+                # Переименовываем столбцы для красоты
+                display_df.columns = ['Цена аналога (₽)', 'Ссылка на объявление']
                 
-                # Форматируем ссылку в Markdown
-                display_df['Ссылка на объявление'] = car_analogs['Ссылка'].apply(lambda x: f"[Открыть объявление на Avito]({x if str(x).startswith('http') else 'https://' + str(x)})")
+                # Убеждаемся, что ссылки имеют правильный формат для открытия
+                display_df['Ссылка на объявление'] = display_df['Ссылка на объявление'].apply(
+                    lambda x: x if str(x).startswith('http') else 'https://' + str(x)
+                )
                 
-                # ИСПРАВЛЕНО ТУТ: Просто выводим markdown-таблицу без ошибочных аргументов
-                st.markdown(display_df.to_markdown(index=False))
+                # Используем мощный встроенный компонент таблицы с поддержкой ссылок
+                st.dataframe(
+                    display_df,
+                    column_config={
+                        "Цена аналога (₽)": st.column_config.NumberColumn(format="%d ₽"),
+                        "Ссылка на объявление": st.column_config.LinkColumn("Открыть объявление")
+                    },
+                    hide_index=True,
+                    use_container_width=True
+                )
             else:
                 st.info("Данные по актуальным аналогам на рынке сейчас обновляются вашим менеджером.")
                 
