@@ -12,7 +12,7 @@ SHARE_ID = "1On_134S1gG5Cduk3mGRNipffeNXED3CzDU3EJe-1Dfc"
 def load_data(sheet_name):
     url = f"https://docs.google.com/spreadsheets/d/{SHARE_ID}/gviz/tq?tqx=out:csv&sheet={sheet_name}"
     df = pd.read_csv(url)
-    df.columns = df.columns.str.strip()
+    df.columns = df.columns.str.strip() # Убираем пробелы по краям заголовков
     return df
 
 try:
@@ -20,7 +20,12 @@ try:
     df_cars = load_data("cars")
     df_activity = load_data("activity_log")
     df_analogs = load_data("market_analogs")
-    df_price_hist = load_data("price_history") # Загружаем историю цен
+    
+    # Пытаемся загрузить историю цен безопасно
+    try:
+        df_price_hist = load_data("price_history")
+    except:
+        df_price_hist = pd.DataFrame()
     
     # --- ЭКРАН АВТОРИЗАЦИИ ---
     st.title("🔐 Вход в личный кабинет комиссионера")
@@ -58,8 +63,16 @@ try:
             car_analogs = df_analogs[df_analogs['ID_авто'] == car_id].copy()
             car_analogs = car_analogs.dropna(subset=['Ссылка', 'Цена'])
             
-            car_price_history = df_price_hist[df_price_hist['ID_авто'] == car_id].copy()
-            car_price_history = car_price_history.dropna(subset=['Дата', 'Цена'])
+            # УНИВЕРСАЛЬНАЯ ПРИВЯЗКА ИСТОРИИ ЦЕН ПО ИНДЕКСАМ КОЛОНОК
+            car_price_history = pd.DataFrame()
+            if not df_price_hist.empty and len(df_price_hist.columns) >= 3:
+                # Переименовываем колонки по их порядковому номеру для надежности
+                df_price_hist_clean = df_price_hist.copy()
+                df_price_hist_clean.columns = ['id_auto', 'date_val', 'price_val'] + list(df_price_hist_clean.columns[3:])
+                
+                # Фильтруем по ID авто
+                car_price_history = df_price_hist_clean[df_price_hist_clean['id_auto'].astype(str) == str(car_id)].copy()
+                car_price_history = car_price_history.dropna(subset=['date_val', 'price_val'])
             
             try:
                 days_on_sale = int(car['Дней в продаже'])
@@ -132,20 +145,20 @@ try:
 
             st.markdown("---")
             
-            # БЛОК 4: Новое — История изменения цены
+            # БЛОК 4: История изменения цены и Аналоги с рынка
             col_hist_graph, col_market_table = st.columns([1, 1])
             
             with col_hist_graph:
                 st.subheader("📉 История изменения цены")
                 if not car_price_history.empty:
-                    # Преобразуем даты и сортируем их для красивой линии
-                    car_price_history['Дата_dt'] = pd.to_datetime(car_price_history['Дата'], dayfirst=True, errors='coerce')
-                    car_price_history = car_price_history.sort_values('Дата_dt')
+                    # Преобразуем даты и сортируем хронологически
+                    car_price_history['date_dt'] = pd.to_datetime(car_price_history['date_val'], dayfirst=True, errors='coerce')
+                    car_price_history = car_price_history.sort_values('date_dt')
                     
                     fig_price = go.Figure()
                     fig_price.add_trace(go.Scatter(
-                        x=car_price_history['Дата'], 
-                        y=car_price_history['Цена'], 
+                        x=car_price_history['date_val'], 
+                        y=car_price_history['price_val'], 
                         mode='lines+markers',
                         line=dict(shape='spline', color='#ff7f0e', width=3),
                         marker=dict(size=8),
@@ -160,7 +173,7 @@ try:
                 else:
                     st.info("Цена на автомобиль не корректировалась с момента постановки на комиссию.")
             
-            # БЛОК 5: Аналоги с рынка (теперь рядом с историей цены)
+            # БЛОК 5: Аналоги с рынка
             with col_market_table:
                 st.subheader("📊 Текущие аналоги на рынке")
                 if not car_analogs.empty:
@@ -181,7 +194,7 @@ try:
                         height=300
                     )
                 else:
-                    st.info("Данные по актуальным аналогам на рынке обновляются.")
+                    st.info("Данные по актуальным аналогам на рынке сейчас обновляются.")
                 
             st.markdown("---")
             
