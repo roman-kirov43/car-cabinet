@@ -1,6 +1,6 @@
 [theme]
-primaryColor = "#2ca02c"          # Цвет акцентов (благородный зеленый)
-backgroundColor = "#f8f9fa"      # Светлый мягкий фон
-secondaryBackgroundColor = "#ffffff" # Белоснежные карточки
-textColor = "#212529"            # Темно-серый читаемый текст
-font = "sans serif"              # Шрифт
+primaryColor = "#ff7f0e"          # Цвет активных элементов и графиков (оранжевый)
+backgroundColor = "#1e222b"      # Задний фон страницы (глубокий графитовый)
+secondaryBackgroundColor = "#282c34" # Фон карточек и боковых панелей
+textColor = "#ffffff"            # Цвет текста
+font = "sans serif"              # Современный чистый шрифт
