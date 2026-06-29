@@ -12,7 +12,7 @@ st.set_page_config(
 # --- БЛОК УЛЬТРАСОВРЕМЕННЫХ СТИЛЕЙ (CSS) ---
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght=400;500;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&display=swap');
     
     html, body, [data-testid="stWidgetLabel"], p, div {
         font-family: 'Ubuntu', sans-serif !important;
@@ -39,7 +39,7 @@ st.markdown("""
     div[data-testid="stMetricValue"] {
         font-size: 32px !important;
         font-weight: 700 !important;
-        color: #ff7f0e !important; /* Насыщенный оранжевый акцент */
+        color: #ff7f0e !important; /* Насыщенный оранжевый accent */
     }
     
     /* Современные скругления для блоков предупреждений и рекомендаций */
@@ -79,7 +79,7 @@ try:
         df_price_hist = pd.DataFrame()
     
     # --- ЭКРАН АВТОРИЗАЦИИ ---
-    st.title("🔐 Вход в личный кабинет комиссионера Автосалон Гусар")
+    st.title("🔐 Вход в личный кабинет комиссионера")
     
     # Поле для ввода последних 5 символов VIN
     user_vin_input = st.text_input("Введите последние 5 символов VIN-кода вашего автомобиля:", "", max_chars=5).strip()
@@ -90,7 +90,7 @@ try:
             clean_vin = str(vin_value).strip().lower()
             return clean_vin[-5:] if len(clean_vin) >= 5 else clean_vin
 
-        # Ищем машину, у которой последние 5 символов VIN совпали с вводом пользователя
+        # Ищем машину, у которой последние 5 символов VIN совпадают с вводом пользователя
         user_cars = df_cars[df_cars['Госномер / VIN'].apply(get_last_5) == user_vin_input.lower()]
         
         if not user_cars.empty:
@@ -118,7 +118,6 @@ try:
             car_price_history = pd.DataFrame()
             if not df_price_hist.empty and len(df_price_hist.columns) >= 3:
                 df_price_hist_clean = df_price_hist.copy()
-                # Берем только первые 3 столбца и жестко даем им технические имена
                 df_price_hist_clean = df_price_hist_clean.iloc[:, :3]
                 df_price_hist_clean.columns = ['id_auto', 'date_val', 'price_val']
                 
@@ -257,13 +256,18 @@ try:
             st.markdown("---")
             
             # БЛОК 5: Ответственный менеджер
-            st.subheader("👨‍💼 Ваш ответственный менеджер")
+            st.subheader("👤 Ваш ответственный менеджер")
             st.markdown(f"По любым вопросам вы можете связаться напрямую: **{car['ФИО менеджера']}** ({car['Телефон менеджера']})")
         else:
             st.error("Автомобиль с такими цифрами VIN не найден. Пожалуйста, проверьте правильность ввода или обратитесь к вашему менеджеру.")
     else:
-        # Стильный широкоформатный приветственный баннер на экране входа
-        st.image("https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=1200&q=80", use_container_width=True)
+        # ТУТ ЗАМЕНЕНО: Загружаем твой собственный баннер «Гусар» из репозитория GitHub
+        try:
+            st.image("banner.jpg", use_container_width=True)
+        except:
+            # Подстраховка: если картинка еще не загрузилась на гитхаб, покажется стильный фон
+            st.image("https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=1200&q=80", use_container_width=True)
+            
         st.info("💡 Пожалуйста, введите последние 5 символов VIN-кода вашего автомобиля выше, чтобы войти в личный кабинет.")
 
 except Exception as e:
