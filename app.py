@@ -57,7 +57,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Ключ твоей Google Таблицы
-SHARE_ID = "1On_134S1gG5Cduk3mGRNipffeNXED3CzDU3EJe-1Dfc" 
+SHARE_ID = "1On_134S1gG5Cduk3mGRNipffenXED3CzDU3EJe-1Dfc" 
 
 @st.cache_data(ttl=5)  # Быстрое обновление данных
 def load_data(sheet_name):
@@ -167,9 +167,15 @@ try:
                 st.subheader("📈 Динамика активности по дням")
                 if not car_activity.empty:
                     fig = go.Figure()
+                    
+                    # Проверяем наличие новой колонки "Сообщения"
+                    if 'Сообщения' in car_activity.columns:
+                        fig.add_trace(go.Bar(x=car_activity['Дата'], y=car_activity['Сообщения'], name='💬 Сообщения', marker_color='#9467bd'))
+                        
                     fig.add_trace(go.Bar(x=car_activity['Дата'], y=car_activity['Звонки'], name='📞 Звонки', marker_color='#2ca02c'))
                     fig.add_trace(go.Bar(x=car_activity['Дата'], y=car_activity['Визиты'], name='🚶 Визиты', marker_color='#1f77b4'))
                     fig.add_trace(go.Bar(x=car_activity['Дата'], y=car_activity['Тест-драйвы'], name='🏎️ Тест-драйвы', marker_color='#ff7f0e'))
+                    
                     fig.update_layout(
                         barmode='group', 
                         margin=dict(l=10, r=10, t=10, b=10), 
@@ -188,16 +194,22 @@ try:
                 total_visits = car_activity['Визиты'].sum()
                 total_tests = car_activity['Тест-драйвы'].sum()
                 
-                conv_to_visit = (total_visits / total_calls * 100) if total_calls > 0 else 0
+                # Подсчет общего количества сообщений
+                total_chats = car_activity['Сообщения'].sum() if 'Сообщения' in car_activity.columns else 0
+                
+                # Считаем общую конверсию в визит от всех первичных контактов (Звонки + Сообщения)
+                total_leads = total_calls + total_chats
+                conv_to_visit = (total_visits / total_leads * 100) if total_leads > 0 else 0
                 conv_to_test = (total_tests / total_visits * 100) if total_visits > 0 else 0
                 
                 st.markdown(f"👀 Просмотров объявлений: **{total_views}**")
+                st.markdown(f"💬 Всего сообщений (чаты): **{total_chats}**")
                 st.markdown(f"📞 Всего звонков: **{total_calls}**")
                 st.markdown(f"🚶 Всего визитов в салон: **{total_visits}**")
                 st.markdown(f"🏎️ Проведено тест-драйвов: **{total_tests}**")
                 
                 st.markdown("---")
-                st.metric(label="Конверсия: Звонки ➡️ Визиты", value=f"{conv_to_visit:.1f}%")
+                st.metric(label="Конверсия: Контакты ➡️ Визиты", value=f"{conv_to_visit:.1f}%")
                 st.metric(label="Конверсия: Визиты ➡️ Тест-драйв", value=f"{conv_to_test:.1f}%")
 
             st.markdown("---")
@@ -261,11 +273,10 @@ try:
         else:
             st.error("Автомобиль с такими цифрами VIN не найден. Пожалуйста, проверьте правильность ввода или обратитесь к вашему менеджеру.")
     else:
-        # ТУТ ЗАМЕНЕНО: Загружаем твой собственный баннер «Гусар» из репозитория GitHub
+        # Загружаем твой собственный баннер «Гусар» из репозитория GitHub
         try:
             st.image("banner.jpg", use_container_width=True)
         except:
-            # Подстраховка: если картинка еще не загрузилась на гитхаб, покажется стильный фон
             st.image("https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=1200&q=80", use_container_width=True)
             
         st.info("💡 Пожалуйста, введите последние 5 символов VIN-кода вашего автомобиля выше, чтобы войти в личный кабинет.")
