@@ -97,7 +97,6 @@ try:
             st.success("Авторизация успешна!")
             st.markdown("---")
             
-            # Если у одного владельца нашлось несколько машин
             if len(user_cars) > 1:
                 car_options = user_cars['Марка и Модель'].tolist()
                 selected_car_name = st.selectbox("Выберите нужный автомобиль для просмотра:", car_options)
@@ -149,7 +148,7 @@ try:
                 
             st.markdown("---")
             
-            # БЛОК 2: Крупные цифры-метрики (Новые интерактивные карточки)
+            # БЛОК 2: Крупные цифры-метрики
             col1, col2, col3 = st.columns(3)
             with col1:
                 st.metric(label="💰 Текущая цена в салоне", value=f"{price_salon:,.0f} ₽")
@@ -168,7 +167,11 @@ try:
                 if not car_activity.empty:
                     fig = go.Figure()
                     
-                    # Проверяем наличие новой колонки "Сообщения"
+                    # Заполняем пустые значения в столбцах нулями для корректного графика
+                    for col in ['Сообщения', 'Звонки', 'Визиты', 'Тест-драйвы']:
+                        if col in car_activity.columns:
+                            car_activity[col] = pd.to_numeric(car_activity[col], errors='coerce').fillna(0)
+                    
                     if 'Сообщения' in car_activity.columns:
                         fig.add_trace(go.Bar(x=car_activity['Дата'], y=car_activity['Сообщения'], name='💬 Сообщения', marker_color='#9467bd'))
                         
@@ -189,21 +192,26 @@ try:
                     
             with col_funnel:
                 st.subheader("🎯 Сводка и Конверсии")
-                total_views = car_activity['Просмотны' if 'Просмотны' in car_activity.columns else 'Просмотры'].sum()
-                total_calls = car_activity['Звонки'].sum()
-                total_visits = car_activity['Визиты'].sum()
-                total_tests = car_activity['Тест-драйвы'].sum()
                 
-                # Подсчет общего количества сообщений
-                total_chats = car_activity['Сообщения'].sum() if 'Сообщения' in car_activity.columns else 0
+                # Считаем суммы, переводя в числа и заменяя пустые ячейки нулями
+                total_views = int(pd.to_numeric(car_activity['Просмотны' if 'Просмотны' in car_activity.columns else 'Просмотры'], errors='coerce').fillna(0).sum())
+                total_calls = int(pd.to_numeric(car_activity['Звонки'], errors='coerce').fillna(0).sum())
+                total_visits = int(pd.to_numeric(car_activity['Визиты'], errors='coerce').fillna(0).sum())
+                total_tests = int(pd.to_numeric(car_activity['Тест-драйвы'], errors='coerce').fillna(0).sum())
+                
+                # ТУТ ИСПРАВЛЕНО: Жестко переводим сумму сообщений в ЦЕЛОЕ число (int)
+                if 'Сообщения' in car_activity.columns:
+                    total_chats = int(pd.to_numeric(car_activity['Сообщения'], errors='coerce').fillna(0).sum())
+                else:
+                    total_chats = 0
                 
                 # Считаем общую конверсию в визит от всех первичных контактов (Звонки + Сообщения)
                 total_leads = total_calls + total_chats
                 conv_to_visit = (total_visits / total_leads * 100) if total_leads > 0 else 0
                 conv_to_test = (total_tests / total_visits * 100) if total_visits > 0 else 0
                 
-                st.markdown(f"👀 Просмотров объявлений: **{total_views}**")
-                st.markdown(f"💬 Всего сообщений (чаты): **{total_chats}**")
+                st.markdown(f"👀 Просмотров объявлений: **{total_views:,}**".replace(',', ' '))
+                st.markdown(f"💬 Всего сообщений (чаты): **{total_chats}**") # Выведется ровно целое число
                 st.markdown(f"📞 Всего звонков: **{total_calls}**")
                 st.markdown(f"🚶 Всего визитов в салон: **{total_visits}**")
                 st.markdown(f"🏎️ Проведено тест-драйвов: **{total_tests}**")
@@ -273,7 +281,6 @@ try:
         else:
             st.error("Автомобиль с такими цифрами VIN не найден. Пожалуйста, проверьте правильность ввода или обратитесь к вашему менеджеру.")
     else:
-        # Загружаем твой собственный баннер «Гусар» из репозитория GitHub
         try:
             st.image("banner.jpg", use_container_width=True)
         except:
