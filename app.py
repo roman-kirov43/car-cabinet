@@ -57,7 +57,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Ключ твоей Google Таблицы
-SHARE_ID = "1On_134S1gG5Cduk3mGRNipffenXED3CzDU3EJe-1Dfc" 
+SHARE_ID = "1On_134S1gG5Cduk3mGRNipffeNXED3CzDU3EJe-1Dfc" 
 
 @st.cache_data(ttl=5)  # Быстрое обновление данных
 def load_data(sheet_name):
