@@ -332,14 +332,14 @@ try:
             st.markdown("---")
             
             # БЛОК 5: Оффер Срочного выкупа + Контакты ответственного менеджера
-            st.subheader("👤 Сопровождение сделки")
+            st.subheader("🧑🏻‍💻 Сопровождение сделки")
             
             manager_col, buyout_col = st.columns([1, 1])
             
             with manager_col:
                 st.markdown("### Ваш ответственного менеджер")
                 st.markdown(f"По любым вопросам вы можете связаться напрямую:")
-                st.info(f"👤 **{car['ФИО менеджера']}**\n\n📞 {car['Telephone менеджера'] if 'Telephone менеджера' in car else car['Телефон менеджера']}")
+                st.info(f"🧑🏻‍💻 **{car['ФИО менеджера']}**\n\n📞 {car['Telephone менеджера'] if 'Telephone менеджера' in car else car['Телефон менеджера']}")
                 
             with buyout_col:
                 buyout_price_col = 'Цена срочного выкупа (₽)'
