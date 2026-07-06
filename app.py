@@ -57,7 +57,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Ключ твоей Google Таблицы
-SHARE_ID = "1On_134S1gG5Cduk3mGRNipffeNXED3CzDU3EJe-1Dfc" 
+SHARE_ID = "On_134S1gG5Cduk3mGRNipffeNXED3CzDU3EJe-1Dfc" 
 
 @st.cache_data(ttl=5)  # Быстрое обновление данных
 def load_data(sheet_name):
@@ -148,6 +148,33 @@ try:
                 
             st.markdown("---")
             
+            # НОВЫЙ БЛОК: Ссылки на объявления (Авито, Авто.ру, Дром)
+            st.subheader("🔗 Размещение на рекламных площадках")
+            st.markdown("Вы можете перейти по ссылкам ниже, чтобы посмотреть актуальные объявления о продаже вашего автомобиля:")
+            
+            # Создаем сетку из 3 колонок под кнопки рекламных площадок
+            link_col1, link_col2, link_col3 = st.columns(3)
+            
+            with link_col1:
+                if 'Ссылка Авито' in car and pd.notna(car['Ссылка Авито']) and str(car['Ссылка Авито']).strip() != "":
+                    st.link_button("🟩 Открыть объявление на Авито", str(car['Ссылка Авито']).strip(), use_container_width=True)
+                else:
+                    st.button("⬜ Авито: Проверяется модерацией", disabled=True, use_container_width=True)
+                    
+            with link_col2:
+                if 'Ссылка Автору' in car and pd.notna(car['Ссылка Автору']) and str(car['Ссылка Автору']).strip() != "":
+                    st.link_button("🟥 Открыть объявление на Авто.ру", str(car['Ссылка Автору']).strip(), use_container_width=True)
+                else:
+                    st.button("⬜ Авто.ру: Проверяется модерацией", disabled=True, use_container_width=True)
+                    
+            with link_col3:
+                if 'Ссылка Дром' in car and pd.notna(car['Ссылка Дром']) and str(car['Ссылка Дром']).strip() != "":
+                    st.link_button("🟨 Открыть объявление на Дром", str(car['Ссылка Дром']).strip(), use_container_width=True)
+                else:
+                    st.button("⬜ Дром: Проверяется модерацией", disabled=True, use_container_width=True)
+            
+            st.markdown("---")
+            
             # БЛОК 2: Крупные цифры-метрики
             col1, col2, col3 = st.columns(3)
             with col1:
@@ -167,7 +194,6 @@ try:
                 if not car_activity.empty:
                     fig = go.Figure()
                     
-                    # Заполняем пустые значения в столбцах нулями для корректного графика
                     for col in ['Сообщения', 'Звонки', 'Визиты', 'Тест-драйвы']:
                         if col in car_activity.columns:
                             car_activity[col] = pd.to_numeric(car_activity[col], errors='coerce').fillna(0)
@@ -193,25 +219,22 @@ try:
             with col_funnel:
                 st.subheader("🎯 Сводка и Конверсии")
                 
-                # Считаем суммы, переводя в числа и заменяя пустые ячейки нулями
                 total_views = int(pd.to_numeric(car_activity['Просмотны' if 'Просмотны' in car_activity.columns else 'Просмотры'], errors='coerce').fillna(0).sum())
                 total_calls = int(pd.to_numeric(car_activity['Звонки'], errors='coerce').fillna(0).sum())
                 total_visits = int(pd.to_numeric(car_activity['Визиты'], errors='coerce').fillna(0).sum())
                 total_tests = int(pd.to_numeric(car_activity['Тест-драйвы'], errors='coerce').fillna(0).sum())
                 
-                # ТУТ ИСПРАВЛЕНО: Жестко переводим сумму сообщений в ЦЕЛОЕ число (int)
                 if 'Сообщения' in car_activity.columns:
                     total_chats = int(pd.to_numeric(car_activity['Сообщения'], errors='coerce').fillna(0).sum())
                 else:
                     total_chats = 0
                 
-                # Считаем общую конверсию в визит от всех первичных контактов (Звонки + Сообщения)
                 total_leads = total_calls + total_chats
                 conv_to_visit = (total_visits / total_leads * 100) if total_leads > 0 else 0
                 conv_to_test = (total_tests / total_visits * 100) if total_visits > 0 else 0
                 
                 st.markdown(f"👀 Просмотров объявлений: **{total_views:,}**".replace(',', ' '))
-                st.markdown(f"💬 Всего сообщений (чаты): **{total_chats}**") # Выведется ровно целое число
+                st.markdown(f"💬 Всего сообщений (чаты): **{total_chats}**")
                 st.markdown(f"📞 Всего звонков: **{total_calls}**")
                 st.markdown(f"🚶 Всего визитов в салон: **{total_visits}**")
                 st.markdown(f"🏎️ Проведено тест-драйвов: **{total_tests}**")
