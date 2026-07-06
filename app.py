@@ -148,11 +148,8 @@ try:
                 
             st.markdown("---")
             
-            # НОВЫЙ БЛОК: Ссылки на объявления (Авито, Авто.ру, Дром)
+            # БЛОК: Ссылки на объявления (Авито, Авто.ру, Дром)
             st.subheader("🔗 Размещение на рекламных площадках")
-            st.markdown("Вы можете перейти по ссылкам ниже, чтобы посмотреть актуальные объявления о продаже вашего автомобиля:")
-            
-            # Создаем сетку из 3 колонок под кнопки рекламных площадок
             link_col1, link_col2, link_col3 = st.columns(3)
             
             with link_col1:
@@ -183,6 +180,39 @@ try:
                 st.metric(label="📊 Средняя цена на рынке", value=f"{price_market:,.0f} ₽")
             with col3:
                 st.metric(label="📅 Дней на комиссии", value=f"{days_on_sale} дней")
+                
+            st.markdown("---")
+
+            # --- РАСЧЕТ ДАННЫХ ДЛЯ ИНДИКАТОРА И ВОРОНКИ ---
+            total_views = int(pd.to_numeric(car_activity['Просмотны' if 'Просмотны' in car_activity.columns else 'Просмотры'], errors='coerce').fillna(0).sum())
+            total_calls = int(pd.to_numeric(car_activity['Звонки'], errors='coerce').fillna(0).sum())
+            total_visits = int(pd.to_numeric(car_activity['Визиты'], errors='coerce').fillna(0).sum())
+            total_tests = int(pd.to_numeric(car_activity['Тест-драйвы'], errors='coerce').fillna(0).sum())
+            
+            if 'Сообщения' in car_activity.columns:
+                total_chats = int(pd.to_numeric(car_activity['Сообщения'], errors='coerce').fillna(0).sum())
+            else:
+                total_chats = 0
+            
+            total_leads = total_calls + total_chats
+            conv_to_visit = (total_visits / total_leads * 100) if total_leads > 0 else 0
+            conv_to_test = (total_tests / total_visits * 100) if total_visits > 0 else 0
+            
+            # Расчет общей конверсии из Просмотров в Лиды (Звонки + Сообщения) для шкалы здоровья сделки
+            view_to_lead_ratio = (total_leads / total_views * 100) if total_views > 0 else 0
+
+            # НОВЫЙ БЛОК: Индикатор привлекательности автомобиля (Здоровье сделки)
+            st.subheader("🎯 Индекс привлекательности автомобиля на рынке")
+            
+            if view_to_lead_ratio < 5.0:
+                st.progress(0.35)  # Заполняем на треть
+                st.markdown("🔴 **Статус:** `Нужно скорректировать цену` — Просмотры есть, но откликов (звонков/сообщений) критически мало. Рынок считает цену завышенной. Рекомендуется обсудить снижение стоимости с вашим менеджером для запуска активных продаж.")
+            elif 5.0 <= view_to_lead_ratio < 10.0:
+                st.progress(0.65)  # Заполняем больше половины
+                st.markdown("🟡 **Статус:** `Умеренный спрос` — Машина вызывает интерес, идут регулярные контакты. Темп хороший, рекомендуем удерживать текущую цену или применить дополнительное рекламное продвижение.")
+            else:
+                st.progress(1.0)   # Полная шкала
+                st.markdown("🟢 **Статус:** `Отличный темп, скоро будет сделка!` — Ваше предложение максимально привлекательно для покупателей. Высокая конверсия в звонки и чаты. Автомобиль в фокусе горячих клиентов.")
                 
             st.markdown("---")
             
@@ -218,21 +248,6 @@ try:
                     
             with col_funnel:
                 st.subheader("🎯 Сводка и Конверсии")
-                
-                total_views = int(pd.to_numeric(car_activity['Просмотны' if 'Просмотны' in car_activity.columns else 'Просмотры'], errors='coerce').fillna(0).sum())
-                total_calls = int(pd.to_numeric(car_activity['Звонки'], errors='coerce').fillna(0).sum())
-                total_visits = int(pd.to_numeric(car_activity['Визиты'], errors='coerce').fillna(0).sum())
-                total_tests = int(pd.to_numeric(car_activity['Тест-драйвы'], errors='coerce').fillna(0).sum())
-                
-                if 'Сообщения' in car_activity.columns:
-                    total_chats = int(pd.to_numeric(car_activity['Сообщения'], errors='coerce').fillna(0).sum())
-                else:
-                    total_chats = 0
-                
-                total_leads = total_calls + total_chats
-                conv_to_visit = (total_visits / total_leads * 100) if total_leads > 0 else 0
-                conv_to_test = (total_tests / total_visits * 100) if total_visits > 0 else 0
-                
                 st.markdown(f"👀 Просмотров объявлений: **{total_views:,}**".replace(',', ' '))
                 st.markdown(f"💬 Всего сообщений (чаты): **{total_chats}**")
                 st.markdown(f"📞 Всего звонков: **{total_calls}**")
