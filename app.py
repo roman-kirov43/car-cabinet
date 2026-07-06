@@ -49,6 +49,17 @@ st.markdown("""
         box-shadow: 0 6px 20px rgba(0,0,0,0.04);
     }
     
+    /* Стилизация баннера Срочного Выкупа */
+    .buyout-container {
+        background: linear-gradient(135deg, rgba(255, 127, 14, 0.1), rgba(255, 255, 255, 0.02));
+        border: 2px dashed rgba(255, 127, 14, 0.6);
+        padding: 25px;
+        border-radius: 16px;
+        margin-top: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 8px 32px rgba(255, 127, 14, 0.05);
+    }
+    
     /* Красивые отступы для заголовков */
     h1, h2, h3 {
         font-weight: 700 !important;
@@ -197,21 +208,19 @@ try:
             total_leads = total_calls + total_chats
             conv_to_visit = (total_visits / total_leads * 100) if total_leads > 0 else 0
             conv_to_test = (total_tests / total_visits * 100) if total_visits > 0 else 0
-            
-            # Расчет общей конверсии из Просмотров в Лиды (Звонки + Сообщения) для шкалы здоровья сделки
             view_to_lead_ratio = (total_leads / total_views * 100) if total_views > 0 else 0
 
-            # НОВЫЙ БЛОК: Индикатор привлекательности автомобиля (Здоровье сделки)
+            # БЛОК: Индикатор привлекательности автомобиля (Здоровье сделки)
             st.subheader("🎯 Индекс привлекательности автомобиля на рынке")
             
             if view_to_lead_ratio < 5.0:
-                st.progress(0.35)  # Заполняем на треть
+                st.progress(0.35)
                 st.markdown("🔴 **Статус:** `Нужно скорректировать цену` — Просмотры есть, но откликов (звонков/сообщений) критически мало. Рынок считает цену завышенной. Рекомендуется обсудить снижение стоимости с вашим менеджером для запуска активных продаж.")
             elif 5.0 <= view_to_lead_ratio < 10.0:
-                st.progress(0.65)  # Заполняем больше половины
+                st.progress(0.65)
                 st.markdown("🟡 **Статус:** `Умеренный спрос` — Машина вызывает интерес, идут регулярные контакты. Темп хороший, рекомендуем удерживать текущую цену или применить дополнительное рекламное продвижение.")
             else:
-                st.progress(1.0)   # Полная шкала
+                st.progress(1.0)
                 st.markdown("🟢 **Статус:** `Отличный темп, скоро будет сделка!` — Ваше предложение максимально привлекательно для покупателей. Высокая конверсия в звонки и чаты. Автомобиль в фокусе горячих клиентов.")
                 
             st.markdown("---")
@@ -313,9 +322,38 @@ try:
                 
             st.markdown("---")
             
-            # БЛОК 5: Ответственный менеджер
-            st.subheader("👤 Ваш ответственный менеджер")
-            st.markdown(f"По любым вопросам вы можете связаться напрямую: **{car['ФИО менеджера']}** ({car['Телефон менеджера']})")
+            # НОВЫЙ БЛОК 5: Оффер Срочного выкупа + Контакты ответственного менеджера
+            st.subheader("👤 Сопровождение сделки")
+            
+            manager_col, buyout_col = st.columns([1, 1])
+            
+            with manager_col:
+                st.markdown("### Ваш ответственный менеджер")
+                st.markdown(f"По любым вопросам вы можете связаться напрямую:")
+                st.info(f"👤 **{car['ФИО менеджера']}**\n\n📞 {car['Telephone менеджера'] if 'Telephone менеджера' in car else car['Телефон менеджера']}")
+                
+            with buyout_col:
+                # Проверяем колонку срочного выкупа
+                buyout_price_col = 'Цена срочного выкупа (₽)'
+                if buyout_price_col in car and pd.notna(car[buyout_price_col]) and str(car[buyout_price_col]).strip() != "":
+                    try:
+                        b_price = int(float(str(car[buyout_price_col]).replace(' ', '')))
+                        buyout_text = f"**{b_price:,.0f} ₽**".replace(',', ' ')
+                    except:
+                        buyout_text = "индивидуальной стоимости"
+                else:
+                    buyout_text = "индивидуальной стоимости"
+                
+                # Рендерим красивый баннер через HTML-контейнер
+                st.markdown(f"""
+                    <div class="buyout-container">
+                        <h3 style="margin-top:0; color:#ff7f0e;">🏪 Срочный выкуп за 30 минут</h3>
+                        <p>Устали ждать покупателя или срочно нужны деньги? Автосалон <b>«Гусар»</b> готов выкупить Ваш автомобиль прямо сегодня за сумму:</p>
+                        <h2 style="color:#ff7f0e; margin: 10px 0;">{buyout_text}</h2>
+                        <p style="font-size:13px; opacity:0.8; margin-bottom:0;">* Выплата наличными или на карту сразу после подписания договора. Обратитесь к вашему менеджеру для оформления сделки.</p>
+                    </div>
+                """, unsafe_allow_html=True)
+                
         else:
             st.error("Автомобиль с такими цифрами VIN не найден. Пожалуйста, проверьте правильность ввода или обратитесь к вашему менеджеру.")
     else:
