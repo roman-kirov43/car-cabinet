@@ -354,7 +354,7 @@ try:
                 
                 st.markdown(f"""
                     <div class="buyout-container">
-                        <h3 style="margin-top:0; color:#ff7f0e;">🏪 Срочный выкуп за 30 минут</h3>
+                        <h3 style="margin-top:0; color:#ff7f0e;">🏪 Срочный выкуп Вашего авто</h3>
                         <p>Устали ждать покупателя или срочно нужны деньги? Автосалон <b>«Гусар»</b> готов выкупить Ваш автомобиль прямо сегодня за сумму:</p>
                         <h2 style="color:#ff7f0e; margin: 10px 0;">{buyout_text}</h2>
                         <p style="font-size:13px; opacity:0.8; margin-bottom:0;">* Выплата наличными после подписания договора. Обратитесь к вашему менеджеру для оформления сделки.</p>
